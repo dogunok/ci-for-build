@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CI_for_project</title>
+    <style>
+        form{
+            display: flex;
+            flex-direction: column;
+            max-width: 200px;
+            margin: 0 auto;
+
+        }
+        .btnAgent{
+             background-color: red;
+             padding: 10px 5px;
+             width: max-content;
+             cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <label for="hashCommit">Хэш коммита</label>
+        <input type="text" id="hashCommit">
+
+        <label for="nameBuild">Комманда сборки</label>
+        <input type="text" id="nameBuild" required>
+
+        <button type="submit" class="btnAgent">Совершить сборку</button>
+    </form>
+
+    <ul class="infoBuild"></ul>
+    <script>
+        const btnAgent = document.querySelector('form');
+        const hashCommit = document.getElementById('hashCommit');
+        const nameBuild = document.getElementById('nameBuild');
+        const parentInfoBuilds = document.querySelector('.infoBuild');
+
+        const pathServer = window.location.origin;
+
+        const addInfoBuild = (pathServer, infoBuild, parentElem, status) => {
+            console.log(pathServer, infoBuild, parentElem, status, 'addInfoBuild')
+            for(let i = 0; i < infoBuild.length; i++){
+                const infoHTML = `
+                    <li>
+                        <div>
+                            <a href="${pathServer}/build/${infoBuild[i].number || infoBuild[i]}" target="_blank">${infoBuild[i].number || infoBuild[i]}</a>
+                        </div>
+                        <div class="statusBuild">
+                            ${infoBuild[i].status || status[i]}
+                        </div>
+                    </li>
+                `
+                parentElem.insertAdjacentHTML('beforeend', infoHTML);
+            }
+        }
+
+        if(!sessionStorage.getItem('infoBuild')){
+            sessionStorage.setItem('infoBuild', '{"info": []}')
+        } else if(JSON.parse(sessionStorage.getItem('infoBuild')).info.length > 0){
+            addInfoBuild(pathServer, 
+            JSON.parse(sessionStorage.getItem('infoBuild')).info, 
+            parentInfoBuilds,
+            JSON.parse(sessionStorage.getItem('infoBuild')).info)
+        }
+
+
+
+
+        const addInfoLocalStorage = (numberBuild, statusBuild) => {
+           const infoBuild = sessionStorage.getItem('infoBuild');
+           const parseInfoStorage = JSON.parse(infoBuild);
+           parseInfoStorage.info.push({number: numberBuild, status: statusBuild});
+           sessionStorage.setItem('infoBuild', JSON.stringify(parseInfoStorage))
+        }
+
+        btnAgent.addEventListener('submit', (evt) => {
+            const sendInfo = {
+            "hash": hashCommit.value,
+            "nameCommand": nameBuild.value
+        }
+            evt.preventDefault()
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/buildRequest', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(sendInfo)) ;
+
+            xhr.onreadystatechange = function() {
+                if (xhr.status === 200 && xhr.readyState === 4) {
+                    const numberBuild = JSON.parse(xhr.responseText).numberBuild;
+                    const statusBuild = JSON.parse(xhr.responseText).statusBuild;
+                    // console.log(JSON.parse(xhr.responseText))
+                    addInfoLocalStorage(numberBuild, statusBuild)
+                    console.log(JSON.parse(xhr.responseText))
+                    addInfoBuild(pathServer, [numberBuild], parentInfoBuilds, [statusBuild])
+                }
+            }
+        })
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+    "serverPort": "4003",
+    "agentPort": "4013",
+    "repo": "../../github-yandex"
+}
